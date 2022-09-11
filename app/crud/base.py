@@ -1,0 +1,2 @@
+class BaseCRUD:
+    pass
