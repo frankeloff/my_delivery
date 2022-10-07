@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 from pydantic import BaseModel
 
@@ -13,13 +13,14 @@ class Order(BaseOrder):
     pass
 
 
-class BaseGetOrder(BaseOrder):
-    product_names: List[str]
-    status: str
+class ProductQuantity(BaseModel):
+    product: str
+    quantity: int
 
 
 class GetOrder(BaseModel):
-    order_list: List[BaseGetOrder]
+    order_id: int
+    order_list: List[ProductQuantity]
     total_price: int
 
     class Config:
@@ -28,7 +29,7 @@ class GetOrder(BaseModel):
 
 class OrderForStaff(BaseModel):
     order_id: int
-    products: List[str]
+    product_list: List[ProductQuantity]
 
     class Config:
         orm_mode = True

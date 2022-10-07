@@ -12,10 +12,14 @@ class ProductsCRUD(BaseCRUD):
         result = await db.execute(query)
         return result.scalars().all()
 
-    async def get_price(self, db: AsyncSession, order: list):
-        query = select(func.sum(Products.price)).filter(Products.product_id.in_(order))
-        result_sum = await db.execute(query)
-        return result_sum.scalars().first()
+    async def get_price(self, db: AsyncSession, order: dict):
+        result_sum = 0
+        for product_id in order.keys():
+            query = select(Products.price).where(Products.product_id == product_id)
+            result = await db.execute(query)
+            result_sum += result.scalars().first() * order[product_id]
+
+        return result_sum
 
 
 products_crud = ProductsCRUD()

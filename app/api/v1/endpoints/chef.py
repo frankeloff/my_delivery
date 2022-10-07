@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.depends import get_current_user, get_session
 from app.crud import chef_crud
 from app.schemas.chef import ChefIn, ChefOut
-from app.schemas.order import OrderForStaff
+from app.schemas.order import OrderForStaff, ProductQuantity
 
 router = APIRouter()
 
@@ -58,7 +58,15 @@ async def get_my_orders(
     if not chef.email == db_obj.email:
         raise HTTPException(status_code=403, detail="Not enough rights")
 
-    return await chef_crud.get_my_orders(session, db_obj.chef_id)
+    my_orders = await chef_crud.get_my_orders(session, db_obj.chef_id)
+    orders = []
+    for order in my_orders:
+        order_list = []
+        for product, quantity in zip(order.products, order.quantities):
+            order_list.append(ProductQuantity(product=product, quantity=quantity))
+        orders.append(OrderForStaff(order_id=order.order_id, product_list=order_list))
+
+    return orders
 
 
 @router.get("/completed_order")

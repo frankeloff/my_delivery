@@ -1,13 +1,12 @@
 import datetime
 
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_password_hash, verify_password
-from app.models import Chef, Client, Order, OrderDetails, Supplier
+from app.models import Chef, Client, Order, OrderDetails, Products, Supplier
 from app.schemas.client import ClientIn
-from app.schemas.order import BaseGetOrder, GetOrder
 
 from .base import BaseCRUD
 from .chef import chef_crud
@@ -83,11 +82,11 @@ class ClientCRUD(BaseCRUD):
         result = await db.execute(query)
         return result.scalars().first()
 
-    async def make_an_order(self, db: AsyncSession, client_id: int, product_list: list):
+    async def make_an_order(self, db: AsyncSession, client_id: int, product_dict: dict):
 
         chef = await self.get_free_chef(db)
         supplier = await self.get_free_supplier(db)
-        price = await products_crud.get_price(db, product_list)
+        price = await products_crud.get_price(db, product_dict)
 
         db_order_obj = Order(
             chef_id=chef.chef_id,
@@ -101,9 +100,11 @@ class ClientCRUD(BaseCRUD):
         await db.refresh(db_order_obj)
 
         order_details_list = []
-        for product in product_list:
+        for product in product_dict.keys():
             db_order_details_obj = OrderDetails(
-                order_id=db_order_obj.order_id, product_id=product
+                order_id=db_order_obj.order_id,
+                product_id=product,
+                quantity=product_dict[product],
             )
             order_details_list.append(db_order_details_obj)
 
@@ -125,29 +126,25 @@ class ClientCRUD(BaseCRUD):
         }
 
     async def get_my_orders(self, db: AsyncSession, client_id: int):
-        my_orders = await orders_crud.get_by_client_id(db, client_id)
-        total_price = 0
-        order_list = []
-
-        for order in my_orders:
-            product_names = []
-            products = order.products
-            for product in products:
-                product_names.append(product.name)
-            supplier_name = f"{order.supplier.first_name} {order.supplier.second_name}"
-            chef_name = f"{order.chef.first_name} {order.chef.second_name}"
-            order_list.append(
-                BaseGetOrder(
-                    chef_name=chef_name,
-                    supplier_name=supplier_name,
-                    price=order.price,
-                    product_names=product_names,
-                    status=order.status,
-                )
+        query = (
+            select(
+                Order.order_id,
+                func.array_agg(Products.name).label("products"),
+                func.array_agg(OrderDetails.quantity).label("quantities"),
+                Order.price,
             )
-            total_price += order.price
+            .select_from(Client)
+            .join(Order, Client.client_id == Order.client_id, isouter=True)
+            .join(OrderDetails, Order.order_id == OrderDetails.order_id, isouter=True)
+            .join(
+                Products, OrderDetails.product_id == Products.product_id, isouter=True
+            )
+            .where(Client.client_id == client_id)
+            .group_by(Order.order_id)
+        )
 
-        return GetOrder(order_list=order_list, total_price=total_price)
+        result = await db.execute(query)
+        return result.fetchall()
 
     async def accept_order(self, db: AsyncSession, order_id: int):
         query = select(Order).where(Order.order_id == order_id)

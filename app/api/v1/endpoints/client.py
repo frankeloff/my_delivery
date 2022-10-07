@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.depends import get_current_user, get_session
 from app.crud import client_crud, products_crud
 from app.schemas.client import ClientIn, ClientOut
-from app.schemas.order import GetOrder, Order
+from app.schemas.order import GetOrder, Order, ProductQuantity
 from app.schemas.products import ProductsOut
 
 router = APIRouter()
@@ -63,7 +63,7 @@ async def get_menu(
 
 @router.post("/make_an_order", response_model=Order)
 async def make_an_order(
-    order: List[int],
+    order: Dict[int, int],
     email: str,
     client=Depends(get_current_user),
     session=Depends(get_session),
@@ -77,7 +77,7 @@ async def make_an_order(
     return Order(**res_dict)
 
 
-@router.get("/my_order", response_model=GetOrder)
+@router.get("/my_order", response_model=List[GetOrder])
 async def get_my_order(
     email: str,
     client=Depends(get_current_user),
@@ -89,7 +89,18 @@ async def get_my_order(
     if not client.email == db_obj.email:
         raise HTTPException(status_code=403, detail="Not enough rights")
     my_orders = await client_crud.get_my_orders(session, db_obj.client_id)
-    return my_orders
+    orders = []
+    for order in my_orders:
+        order_list = []
+        for product, quantity in zip(order.products, order.quantities):
+            order_list.append(ProductQuantity(product=product, quantity=quantity))
+        orders.append(
+            GetOrder(
+                order_id=order.order_id, order_list=order_list, total_price=order.price
+            )
+        )
+
+    return orders
 
 
 @router.delete("/accept_the_order", response_model=bool)

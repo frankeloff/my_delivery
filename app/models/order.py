@@ -20,6 +20,10 @@ class Order(Base):
 
 class OrderDetails(Base):
     __tablename__ = "order_details"
-    order_details_id = Column(Integer, primary_key=True)
-    product_id = Column(Integer, ForeignKey("products.product_id"), nullable=False)
-    order_id = Column(Integer, ForeignKey("orders.order_id"), nullable=False)
+    product_id = Column(
+        Integer, ForeignKey("products.product_id"), nullable=False, primary_key=True
+    )
+    order_id = Column(
+        Integer, ForeignKey("orders.order_id"), nullable=False, primary_key=True
+    )
+    quantity = Column(Integer, nullable=False)

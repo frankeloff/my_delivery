@@ -71,7 +71,11 @@ class ChefCRUD(BaseCRUD):
 
     async def get_my_orders(self, db: AsyncSession, chef_id: int):
         query = (
-            select(Order.order_id, func.array_agg(Products.name).label("products"))
+            select(
+                Order.order_id,
+                func.array_agg(Products.name).label("products"),
+                func.array_agg(OrderDetails.quantity).label("quantities"),
+            )
             .select_from(Chef)
             .join(Order, Chef.chef_id == Order.chef_id, isouter=True)
             .join(OrderDetails, Order.order_id == OrderDetails.order_id, isouter=True)
@@ -98,7 +102,7 @@ class ChefCRUD(BaseCRUD):
         db.add(chef)
         await db.commit()
 
-        return 1
+        return 0
 
 
 chef_crud = ChefCRUD()

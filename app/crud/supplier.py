@@ -71,7 +71,11 @@ class SupplierCRUD(BaseCRUD):
 
     async def get_my_orders(self, db: AsyncSession, supplier_id: int):
         query = (
-            select(Order.order_id, func.array_agg(Products.name).label("products"))
+            select(
+                Order.order_id,
+                func.array_agg(Products.name).label("products"),
+                func.array_agg(OrderDetails.quantity).label("quantities"),
+            )
             .select_from(Supplier)
             .join(Order, Supplier.supplier_id == Order.supplier_id, isouter=True)
             .join(OrderDetails, Order.order_id == OrderDetails.order_id, isouter=True)
@@ -100,7 +104,7 @@ class SupplierCRUD(BaseCRUD):
         db.add(supplier)
         await db.commit()
 
-        return 1
+        return 0
 
 
 supplier_crud = SupplierCRUD()
