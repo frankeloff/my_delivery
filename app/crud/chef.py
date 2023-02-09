@@ -47,7 +47,6 @@ class ChefCRUD(BaseCRUD):
         return db_obj
 
     async def delete(self, db: AsyncSession, db_obj: Chef):
-
         await db.delete(db_obj)
         await db.commit()
 

@@ -50,7 +50,6 @@ class ClientCRUD(BaseCRUD):
         return db_obj
 
     async def delete(self, db: AsyncSession, db_obj: Client):
-
         await db.delete(db_obj)
         await db.commit()
 
@@ -83,7 +82,6 @@ class ClientCRUD(BaseCRUD):
         return result.scalars().first()
 
     async def make_an_order(self, db: AsyncSession, client_id: int, product_dict: dict):
-
         chef = await self.get_free_chef(db)
         supplier = await self.get_free_supplier(db)
         price = await products_crud.get_price(db, product_dict)

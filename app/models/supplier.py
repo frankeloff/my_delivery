@@ -5,7 +5,6 @@ from app.models.user import User
 
 
 class Supplier(User):
-
     __tablename__ = "supplier"
 
     supplier_id = Column(Integer, ForeignKey("users.id"), primary_key=True)

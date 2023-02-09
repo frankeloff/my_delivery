@@ -5,7 +5,6 @@ from app.models.user import User
 
 
 class Chef(User):
-
     __tablename__ = "chef"
 
     chef_id = Column(Integer, ForeignKey("users.id"), primary_key=True)

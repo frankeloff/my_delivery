@@ -6,7 +6,6 @@ from app.models.user import User
 
 
 class Client(User):
-
     __tablename__ = "client"
 
     client_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
